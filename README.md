@@ -11,3 +11,4 @@ My new project
 # 6) файлы, оканчивающиеся на _override.tf и _override.tf.json
 # 7) файлы .terraformrc и terraform.rc
 
+Add some change to this file and then make commit
