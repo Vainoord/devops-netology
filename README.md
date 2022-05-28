@@ -1,6 +1,6 @@
 My new project
 
- .gitignore
+ #.gitignore
 
  Следующие файлы директории terraform не будут включены в репозиторий:
  1) все файлы в поддиректории .terraform
@@ -11,3 +11,4 @@ My new project
  6) файлы, оканчивающиеся на _override.tf и _override.tf.json
  7) файлы .terraformrc и terraform.rc
 
+28/05/2022 Сделан фикс файла через IDE Pycharm
