@@ -1,26 +1,28 @@
 ## 3.1. Работа в терминале, лекция 1
-
+---
 1. >Какие ресурсы выделены по-умолчанию для VM?
-RAM = 1 Gb
-CPUS = 2
-Video memory = 4 Mb
-HDD = 64 Gb
 
----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ RAM = 1 Gb\
+ CPUS = 2\
+ Video memory = 4 Mb\
+ HDD = 64 Gb
+
+---
 2. >Как добавить оперативной памяти или ресурсов процессора виртуальной машине?
 
 В файле Vagrantfile:
 
- config.vm.provider "virtualbox" do |vb|
-  #   # Display the VirtualBox GUI when booting the machine
-  #   vb.gui = true
-  # 
-     # Customize the amount of memory on the VM:
-     vb.memory = 2048
-     vb.cpus = 2
-   end
-
---------------------------------------------------------------------------------------------------------------------------$
+```
+config.vm.provider "virtualbox" do |vb|
+# Display the VirtualBox GUI when booting the machine
+vb.gui = true
+   
+       # Customize the amount of memory on the VM:
+       vb.memory = 2048
+       vb.cpus = 2
+     end
+```
+---
 3. >Ознакомиться с разделами man bash, почитать о настройках самого bash:
 
 >Какой переменной можно задать длину журнала history, и на какой строчке manual это описывается?
@@ -30,14 +32,14 @@ HDD = 64 Gb
    HISTSIZE - максимальное количество строкб которое выводится на экран при вызове команды history
 
   
-2105 HISTORY
-       When the -o history option to the set builtin is enabled, the shell provides access to the command history, 
+2105 HISTORY\
+When the -o history option to the set builtin is enabled, the shell provides access to the command history, 
 the list of commands previously typed.  The value of the HISTSIZE variable is used as the number of commands to save  
 in  a  history list.   The  text  of the last HISTSIZE commands (default 500) is saved.  The shell stores each 
 command in the history list prior to parameter and variable expansion (see EXPANSION above) but after history expansion is 
 performed, subject to the values of the shell variables HISTIGNORE and HISTCONTROL.
 
-       On startup, the history is initialized from the file named by the variable HISTFILE (default ~/.bash_history).  
+On startup, the history is initialized from the file named by the variable HISTFILE (default ~/.bash_history).  
 The file named by the value of HISTFILE is truncated, if necessary, to contain no more than the number of lines 
 specified by the value  of HISTFILESIZE.  If HISTFILESIZE is unset, or set to null, a non-numeric value, or a numeric 
 value less than zero, the history file is not truncated.  When the history file is read, lines beginning with the 
@@ -59,78 +61,82 @@ history file is not truncated.
 
    Из файла .bashrc:
 
-   # don't put duplicate lines or lines starting with space in the history.
-   # See bash(1) for more options
-   HISTCONTROL=ignoreboth
+```
+# don't put duplicate lines or lines starting with space in the history.
+# See bash(1) for more options
+HISTCONTROL=ignoreboth
+```
 
-   HISTCONTROL
-              A  colon-separated list of values controlling how commands are saved on the history list.  If the list 
+   HISTCONTROL\
+A  colon-separated list of values controlling how commands are saved on the history list.  If the list 
 of values includes ignorespace, lines which begin with a space character are not saved in the history list.  A value 
 of ignoredups causes lines matching the previous history entry to not be saved.  A value of ignoreboth is shorthand for ignorespace and ignoredups.
 
---------------------------------------------------------------------------------------------------------------------------$
+---
 4. >В каких сценариях использования применимы скобки {} и на какой строчке man bash это описано?
 
-*Зарезервированные слова
+* Зарезервированные слова
 128 RESERVED WORDS
 
-*Групповые команды, которые выполняются в текущей оболочке	
+* Групповые команды, которые выполняются в текущей оболочке	
 186    Compound Commands
 192        { list; }    
 
-*Использование в функциях, условных операторах
+* Использование в функциях, условных операторах
 286        function name [()] compound-command [redirection]
 
-*Shell переменные
+* Shell переменные
 401    Shell Variables
 432        BASH_LINENO
 440        BASH_SOURCE
 
-*Массивы
+* Массивы
 671    Arrays
 ${name[subscript]}
 
-*Расширения для создания нескольких файлов или директорий
+* Расширения для создания нескольких файлов или директорий\
+```
 714 EXPANSION
 727    Brace Expansion
-mkdir /usr/local/src/bash/{old,new,dist,bugs}
+```
+```
+vagrant@vagrant:~$ mkdir /usr/local/src/bash/{old,new,dist,bugs}
+```
+----
+5. >С учётом ответа на предыдущий вопрос, как создать однократным вызовом touch 100000 файлов? Получится ли аналогичным образом создать 300000? Если нет, то почему?
 
---------------------------------------------------------------------------------------------------------------------------$
-5. >С учётом ответа на предыдущий вопрос, как создать однократным вызовом touch 100000 файлов? Получится ли 
-аналогичным образом создать 300000? Если нет, то почему?
-
-*Создание 100000 файлов возможно следующей командой:
-touch {1..100000}.file
-
-*300000 файлов создать не получается - слишком длинный список аргументов. Не получится создать уже 120000 
-файлов, но 110000 удалось.
-
-touch {1..300000}.txt
+* Создание 100000 файлов возможно следующей командой:
+```
+vagrant@vagrant:~$ touch {1..100000}.file
+```
+* 300000 файлов создать не получается - слишком длинный список аргументов. Не получится создать уже 120000 файлов, но 110000 удалось.
+```
+vagrant@vagrant:~$ touch {1..300000}.txt
 -bash: /usr/bin/touch: Argument list too long
-
---------------------------------------------------------------------------------------------------------------------------$
+```
+---
 6. >В man bash поищите по /\[\[. Что делает конструкция [[ -d /tmp ]]
 
-*Возвращает статус 0 или 1 в зависимости от оценки выражения условного выражения.
-
+* Возвращает статус 0 или 1 в зависимости от оценки выражения условного выражения.
+```
 CONDITIONAL EXPRESSIONS
 -d file
               True if file exists and is a directory.
 [[ expression ]]
-
-*конструкция [[ -d /tmp ]] при использовании условного оператора IF вернет True, есть каталог /tmp существует
-
-if [[ -d /tmp ]]; then echo "Yes, catalog exists"; fi
+```
+* конструкция [[ -d /tmp ]] при использовании условного оператора IF вернет True, есть каталог /tmp существует
+```
+vagrant@vagrant:~$ if [[ -d /tmp ]]; then echo "Yes, catalog exists"; fi
 Yes, catalog exists
-
---------------------------------------------------------------------------------------------------------------------------$
-7. >Основываясь на знаниях о просмотре текущих (например, PATH) и установке новых переменных; командах, которые мы 
-рассматривали, добейтесь в выводе type -a bash в виртуальной машине наличия первым пунктом в списке:
-bash is /tmp/new_path_directory/bash
-bash is /usr/local/bin/bash
-bash is /bin/bash
-
-----
+```
+---
+7. >Основываясь на знаниях о просмотре текущих (например, PATH) и установке новых переменных; командах, которые мы рассматривали, добейтесь в выводе type -a bash в виртуальной машине наличия первым пунктом в списке
+```
+bash is /tmp/new_path_directory/bash\
+bash is /usr/local/bin/bash\
+bash is /bin/bash\
+```
+```
 vagrant@vagrant:~$ mkdir /tmp/new_path_dir
 vagrant@vagrant:~$ cp /bin/bash /tmp/new_path_dir
 vagrant@vagrant:~$ PATH=/tmp/new_path_dir/:$PATH
@@ -138,8 +144,8 @@ vagrant@vagrant:~$ type -a bash
 bash is /tmp/new_path_dir/bash
 bash is /usr/bin/bash
 bash is /bin/bash
-
---------------------------------------------------------------------------------------------------------------------------
+```
+---
 8. >Чем отличается планирование команд с помощью batch и at?
 
 at, batch, atq, atrm - queue, examine, or delete jobs for later execution
@@ -152,5 +158,5 @@ batch - запускает команды когда позволяют уров
 ниже 1.5 или значение, указанное при вызове atd.
 
 batch не принимает параметры, в отличии от at.
---------------------------------------------------------------------------------------------------------------------------
 
+---
