@@ -117,17 +117,32 @@ vagrant@vagrant:~$ touch {1..300000}.txt
 ---
 6. >В man bash поищите по /\[\[. Что делает конструкция [[ -d /tmp ]]
 
-* Возвращает статус 0 или 1 в зависимости от оценки выражения условного выражения.
+[[ -d /tmp]] Возвращает статус 0 (так называемый Exit code), т.к. директория /tmp 
+существует.
+
 ```
 CONDITIONAL EXPRESSIONS
 -d file
               True if file exists and is a directory.
 [[ expression ]]
+
+EXIT STATUS
+       Shell builtin commands return a status of 0 (true) if successful, and non-zero  
+(false)  if  an  error  occurs
+       while  they  execute.   All builtins return an exit status of 2 to indicate incorrect 
+usage, generally invalid
+       options or missing arguments.
 ```
-* конструкция [[ -d /tmp ]] при использовании условного оператора IF вернет True, есть каталог /tmp существует
+Проверка:
 ```
-vagrant@vagrant:~$ if [[ -d /tmp ]]; then echo "Yes, catalog exists"; fi
-Yes, catalog exists
+vagrant@vagrant:~$ [[ -d "/tmp" ]] && echo $?
+0
+```
+Если директория не существует, то вернется 1:
+```
+vagrant@vagrant:~$ [[ -d "/test" ]]
+vagrant@vagrant:~$ echo $?
+1
 ```
 ---
 7. >Основываясь на знаниях о просмотре текущих (например, PATH) и установке новых переменных; командах, которые мы рассматривали, добейтесь в выводе type -a bash в виртуальной машине наличия первым пунктом в списке
