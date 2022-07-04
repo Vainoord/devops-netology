@@ -1,177 +1,190 @@
-## 3.1. Работа в терминале, лекция 1
+## 3.3. Операционные системы, лекция 1
 ---
-1. >Какие ресурсы выделены по-умолчанию для VM?
-
- RAM = 1 Gb\
- CPUS = 2\
- Video memory = 4 Mb\
- HDD = 64 Gb
-
----
-2. >Как добавить оперативной памяти или ресурсов процессора виртуальной машине?
-
-В файле Vagrantfile:
-
+1. >Какой системный вызов делает команда `cd`?
 ```
-config.vm.provider "virtualbox" do |vb|
-# Display the VirtualBox GUI when booting the machine
-vb.gui = true
-   
-       # Customize the amount of memory on the VM:
-       vb.memory = 2048
-       vb.cpus = 2
-     end
+vagrant@vagrant:~$ strace /bin/bash -c 'cd /tmp' 2>/home/vagrant/std
 ```
----
-3. >Ознакомиться с разделами man bash, почитать о настройках самого bash:
-
->Какой переменной можно задать длину журнала history, и на какой строчке manual это описывается?
-   
-   Переменные HISTFILESIZE и HISTSIZE.
-   HISTFILESIZE - максимальное количество строк, которое может быть записано в bash_history
-   HISTSIZE - максимальное количество строкб которое выводится на экран при вызове команды history
-
-  
-2105 HISTORY\
-When the -o history option to the set builtin is enabled, the shell provides access to the command history, 
-the list of commands previously typed.  The value of the HISTSIZE variable is used as the number of commands to save  
-in  a  history list.   The  text  of the last HISTSIZE commands (default 500) is saved.  The shell stores each 
-command in the history list prior to parameter and variable expansion (see EXPANSION above) but after history expansion is 
-performed, subject to the values of the shell variables HISTIGNORE and HISTCONTROL.
-
-On startup, the history is initialized from the file named by the variable HISTFILE (default ~/.bash_history).  
-The file named by the value of HISTFILE is truncated, if necessary, to contain no more than the number of lines 
-specified by the value  of HISTFILESIZE.  If HISTFILESIZE is unset, or set to null, a non-numeric value, or a numeric 
-value less than zero, the history file is not truncated.  When the history file is read, lines beginning with the 
-history comment character followed immediately by a digit are interpreted as timestamps for the following history 
-line.  These timestamps are optionally displayed depending on the value of the HISTTIMEFORMAT variable.  When a shell with history  
-enabled  exits, the last $HISTSIZE lines are copied from the history list to $HISTFILE.  If the histappend shell 
-option is enabled (see the description of shopt under SHELL BUILTIN COMMANDS below), the lines are appended to the 
-history file, otherwise the history file is overwritten.  If HISTFILE is unset, or if the history file is unwritable, the history is not 
-saved.  If the HISTTIMEFORMAT variable is set, time stamps are written to the history file, marked with the history 
-comment character, so  they  may  be  preserved  across  shell sessions.  This uses the history comment character to distinguish 
-timestamps from other history lines.  After saving the history, the history file is truncated to contain no more than 
-HISTFILESIZE lines.  If HISTFILESIZE is unset, or set to null, a non-numeric value, or a numeric value less than zero, the 
-history file is not truncated.
-
->Что делает директива ignoreboth в bash?
-
-   Директива ignoreboth позволяет не добавлять команды в bash_history, если они начинаются с пробела или если она уже 
-имеется в истории.
-
-   Из файла .bashrc:
-
 ```
-# don't put duplicate lines or lines starting with space in the history.
-# See bash(1) for more options
-HISTCONTROL=ignoreboth
+stat("/tmp", {st_mode=S_IFDIR|S_ISVTX|0777, st_size=4096, ...}) = 0
+chdir("/tmp")                           = 0
 ```
-
-   HISTCONTROL\
-A  colon-separated list of values controlling how commands are saved on the history list.  If the list 
-of values includes ignorespace, lines which begin with a space character are not saved in the history list.  A value 
-of ignoredups causes lines matching the previous history entry to not be saved.  A value of ignoreboth is shorthand for ignorespace and ignoredups.
+Системный вызов chdir, exit code = 0, команда завершена успешно
 
 ---
-4. >В каких сценариях использования применимы скобки {} и на какой строчке man bash это описано?
+2. >Используя `strace` выясните, где находится база данных `file` на основании которой она делает свои догадки.
 
-* Зарезервированные слова
-128 RESERVED WORDS
+БД `file` расположена в файле `/usr/lib/file/magic.mgc`. 
+Обращение к БД проходит через `/usr/share/misc/magic.mgc`. Кроме этого, идет 
+обращение к файлам `/etc/magic.mgc` (такого файла в ubuntu 20.04 нет) и `/etc/magic`.
 
-* Групповые команды, которые выполняются в текущей оболочке	
-186    Compound Commands
-192        { list; }    
-
-* Использование в функциях, условных операторах
-286        function name [()] compound-command [redirection]
-
-* Shell переменные
-401    Shell Variables
-432        BASH_LINENO
-440        BASH_SOURCE
-
-* Массивы
-671    Arrays
-${name[subscript]}
-
-* Расширения для создания нескольких файлов или директорий\
 ```
-714 EXPANSION
-727    Brace Expansion
+openat(AT_FDCWD, "/etc/magic.mgc", O_RDONLY) = -1 ENOENT (No such file or 
+directory)
+stat("/etc/magic", {st_mode=S_IFREG|0644, st_size=111, ...}) = 0
+
+openat(AT_FDCWD, "/etc/magic", O_RDONLY) = 3
+fstat(3, {st_mode=S_IFREG|0644, st_size=111, ...}) = 0
+read(3, "# Magic local data for file(1) c"..., 4096) = 111
+read(3, "", 4096)                       = 0
+close(3)                                = 0
+
+openat(AT_FDCWD, "/usr/share/misc/magic.mgc", O_RDONLY) = 3
+
 ```
 ```
-vagrant@vagrant:~$ mkdir /usr/local/src/bash/{old,new,dist,bugs}
+vagrant@vagrant:~$ file /usr/share/misc/magic.mgc 
+/usr/share/misc/magic.mgc: symbolic link to ../../lib/file/magic.mgc
 ```
+---
+3. >Предположим, приложение пишет лог в текстовый файл. Этот файл оказался удален (deleted в lsof), однако возможности сигналом сказать приложению переоткрыть файлы или просто перезапустить приложение – нет. Так как приложение продолжает писать в удаленный файл, место на диске постепенно заканчивается. Основываясь на знаниях о перенаправлении потоков предложите способ обнуления открытого удаленного файла (чтобы освободить место на файловой системе).
+
+Предположим, есть файл в директории пользователя logfile.log . Будем писать в него результат выполнения команды `ping`:
+```
+vagrant@vagrant:~$ ping 8.8.8.8 > logfile.log
+```
+PID процесса - 1422
+```
+vagrant     1422  0.0  0.0   8844   924 pts/0    S+   14:17   0:00 ping 8.8.8.8
+```
+Размер файла увеличивается:
+```
+vagrant@vagrant:~$ sudo lsof -p 1422 | grep logfile
+ping    1422 vagrant    1w   REG  253,0     4161 1323302 /home/vagrant/logfile.log
+```
+Удаляем файл и смотрим результат:
+```
+vagrant@vagrant:~$ rm logfile.log 
+vagrant@vagrant:~$ sudo lsof -p 1422 | grep logfile
+ping    1422 vagrant    1w   REG  253,0     8785 1323302 /home/vagrant/logfile.log (deleted)
+```
+Файл удален, запись продолжает идти. Процесс 1422 еще работает, данные пишутся в файловый дескриптор `/proc/1422/fd/1`.
+
+3 варианта обнуления файла:
+1) под учетной записью root: echo '' > /proc/1422/fd/1
+2) скопировать `/dev/null` в дескриптор: sudo cp /dev/null /proc/1422/fd/1
+3) уменьнить размер файла через команду `truncate`: sudo truncate -s 0 /proc/1422/fd/1
+
+Попробуем вариант №2. Несмотря на то, что через утилиту `lsof` показатель `SIZE/OFF` процесса постоянно растет даже после обнуления файла, изменение реального размера дискового пространства можно увидеть утилитой `df`:
+```
+vagrant@dev-vm:/tmp/test_size_dir$ df | grep /dev/mapper
+/dev/mapper/ubuntu--vg-ubuntu--lv  32118592   4196748  26267268  14% /
+vagrant@dev-vm:/tmp/test_size_dir$ df | grep /dev/mapper
+/dev/mapper/ubuntu--vg-ubuntu--lv  32118592   4196752  26267264  14% /
+vagrant@dev-vm:/tmp/test_size_dir$ sudo cp /dev/null /proc/2507/fd/1
+vagrant@dev-vm:/tmp/test_size_dir$ df | grep /dev/mapper
+/dev/mapper/ubuntu--vg-ubuntu--lv  32118592   4196740  26267276  14% /
+```
+Вторая цифра - задействованное дисковое пространство, третья - свободное место.
+
+---
+4. >Занимают ли зомби-процессы какие-то ресурсы в ОС (CPU, RAM, IO)?
+
+Зомби-процессы не занимают какие-либо ресурсы в ОС, но отображаются в 
+таблице процессов с литерой Z.
+Зомби-процессы нельзя убить SIGKILL командой, т.к. эти процесс уже в статусе dead. Можно воспользоваться kill -s SIGCHLD parent_pid, команда запустит у родительского процесса системный вызов wait(), чтобы подчистить дочерние зомби-процессы.
+ 
 ----
-5. >С учётом ответа на предыдущий вопрос, как создать однократным вызовом touch 100000 файлов? Получится ли аналогичным образом создать 300000? Если нет, то почему?
+5. >В iovisor BCC есть утилита `opensnoop`:
+```
+root@vagrant:~# dpkg -L bpfcc-tools | grep sbin/opensnoop
+/usr/sbin/opensnoop-bpfcc
+```
 
-* Создание 100000 файлов возможно следующей командой:
+>На какие файлы вы увидели вызовы группы open за первую секунду работы утилиты?
 ```
-vagrant@vagrant:~$ touch {1..100000}.file
+vagrant@vagrant:~$ sudo opensnoop-bpfcc -d 1
+PID    COMM               FD ERR PATH
+1019   vminfo              6   0 /var/run/utmp
+639    dbus-daemon        -1   2 /usr/local/share/dbus-1/system-services
+639    dbus-daemon        20   0 /usr/share/dbus-1/system-services
+639    dbus-daemon        -1   2 /lib/dbus-1/system-services
+639    dbus-daemon        20   0 /var/lib/snapd/dbus-1/system-services/
+
 ```
-* 300000 файлов создать не получается - слишком длинный список аргументов. Не получится создать уже 120000 файлов, но 110000 удалось.
-```
-vagrant@vagrant:~$ touch {1..300000}.txt
--bash: /usr/bin/touch: Argument list too long
-```
+
 ---
-6. >В man bash поищите по /\[\[. Что делает конструкция [[ -d /tmp ]]
+6. >Какой системный вызов использует `uname -a`? Приведите цитату из man по этому системному вызову, где описывается альтернативное местоположение в `/proc`, где можно узнать версию ядра и релиз ОС.
 
-[[ -d /tmp]] Возвращает статус 0 (так называемый Exit code), т.к. директория /tmp 
-существует.
+Системный вызов - `uname`
+```
+uname({sysname="Linux", nodename="vagrant", ...}) = 0
+fstat(1, {st_mode=S_IFCHR|0620, st_rdev=makedev(0x88, 0), ...}) = 0
+uname({sysname="Linux", nodename="vagrant", ...}) = 0
+uname({sysname="Linux", nodename="vagrant", ...}) = 0
 
 ```
-CONDITIONAL EXPRESSIONS
--d file
-              True if file exists and is a directory.
-[[ expression ]]
 
-EXIT STATUS
-       Shell builtin commands return a status of 0 (true) if successful, and non-zero  
-(false)  if  an  error  occurs
-       while  they  execute.   All builtins return an exit status of 2 to indicate incorrect 
-usage, generally invalid
-       options or missing arguments.
+Альтернативное местоположение: `/proc/sys/kernel/{ostype, hostname, osrelease, version, domainname}`.
+Информацию можно найти в справке `man 2 uname`:
 ```
-Проверка:
+NOTES
+
+     This  is  a  system call, and the operating system presumably knows its name, release and version.  It also knows what hardware it runs on.  So, four of the fields of the struct are meaningful.  On the other
+       hand, the field nodename is meaningless: it gives the name of the present machine in some undefined network, but typically machines are in more than one network and have several names.  Moreover, the  kernel
+       has no way of knowing about such things, so it has to be told what to answer here.  The same holds for the additional domainname field.
+
+       To this end, Linux uses the system calls sethostname(2) and setdomainname(2).  Note that there is no standard that says that the hostname set by sethostname(2) is the same string as the nodename field of the
+       struct returned by uname() (indeed, some systems allow a 256-byte hostname and an 8-byte nodename), but this is true on Linux.  The same holds for setdomainname(2) and the domainname field.
+
+       The length of the fields in the struct varies.  Some operating systems or libraries use a hardcoded 9 or 33 or 65 or 257.  Other systems use SYS_NMLN or _SYS_NMLN or UTSLEN or _UTSNAME_LENGTH.   Clearly,  it is a bad idea to use any of these constants; just use sizeof(...).  Often 257 is chosen in order to have room for an internet hostname.
+       Part of the utsname information is also accessible via /proc/sys/kernel/{ostype, hostname, osrelease, version, domainname}.
+
 ```
-vagrant@vagrant:~$ [[ -d "/tmp" ]] && echo $?
-0
-```
-Если директория не существует, то вернется 1:
-```
-vagrant@vagrant:~$ [[ -d "/test" ]]
-vagrant@vagrant:~$ echo $?
-1
-```
+
 ---
-7. >Основываясь на знаниях о просмотре текущих (например, PATH) и установке новых переменных; командах, которые мы рассматривали, добейтесь в выводе type -a bash в виртуальной машине наличия первым пунктом в списке
+7. >Чем отличается последовательность команд через `;` и через `&&` в bash? Например
 ```
-bash is /tmp/new_path_directory/bash\
-bash is /usr/local/bin/bash\
-bash is /bin/bash\
+root@netology1:~# test -d /tmp/some_dir; echo Hi
+Hi
+root@netology1:~# test -d /tmp/some_dir && echo Hi
+root@netology1:~#
 ```
+И `;`, и `&&` являются операторами для организации конвейерных команд. Сценарии использования:
+
+command1 ; command2 - в этом случае `command2` выполнится после `command1`независимо от результата работы первой.
+
+command1 && command2 - в этом случае `command2` будет выполняться только если `command1` выолнится успешно (вернет код завершения 0).
+
+>Есть ли смысл использовать в bash &&, если применить set -e?
+
+Из man bash:
 ```
-vagrant@vagrant:~$ mkdir /tmp/new_path_dir
-vagrant@vagrant:~$ cp /bin/bash /tmp/new_path_dir
-vagrant@vagrant:~$ PATH=/tmp/new_path_dir/:$PATH
-vagrant@vagrant:~$ type -a bash
-bash is /tmp/new_path_dir/bash
-bash is /usr/bin/bash
-bash is /bin/bash
+set [--abefhkmnptuvxBCHP] [-o option] [arg ...]
+...
+ -e      Exit immediately if a simple command (see SHELL GRAMMAR above) exits  with
+                      a  non-zero  status.  The shell does not exit if the command that fails is
+                      part of the command list immediately following a while or  until  keyword,
+                      part  of  the  test in an if statement, part of a && or || list, or if the
+                      command's return value is being inverted via !.  A trap on ERR, if set, is
+                      executed before the shell exits.
+...
 ```
+Использование `set -e` в скрипте прерывает его работу, если exit code будет отличен от нуля, и дальнейший запуск команд после этого выполнен не будет. Если команда с ошибкой находится внутри блока `while` или `until`, если команда была в блоке `if`, если команды находятся в списке и разделены `&&` или `||` - в этих случаях работа shell будет продолжена.
+
 ---
-8. >Чем отличается планирование команд с помощью batch и at?
+8. >Из каких опций состоит режим bash `set -euxo pipefail` и почему его хорошо было бы использовать в сценариях?
 
-at, batch, atq, atrm - queue, examine, or delete jobs for later execution
-at      executes commands at a specified time.
-batch   executes commands when system load levels permit; in other words, when the load average drops below 
-1.5, or the value specified in the invocation of atd.
+-e прервать выполнение команды немедленно, если команда завершается с ненулевым статусом
+-u неустановленные параметры и переменные считаются за ошибки, с выводом в stderr текста ошибки и выполнит завершение неинтерактивного вызова
+-x вывод команд и их аргументов по мере их выполнения 
+-o pipefail возвращаемое значение конвейера как статус последней команды для выхода с ненулевым статусом. Или вернет ноль, если ни одна команда не вышла с ненулевым статусом, т.е. все команды завершились без ошибок.
 
-at - запускает команды в заданное время
-batch - запускает команды когда позволяют уровни загрузки системы; другими словами, когда средняя нагрузка падает 
-ниже 1.5 или значение, указанное при вызове atd.
+Данный режим bash прервет выполнения команд при наличие ошибок, а также показывает более детальный вывод результатов выполнения команд, в частности - наличие ошибок.
 
-batch не принимает параметры, в отличии от at.
+---
+
+9. >Используя `-o stat` для `ps`, определите, какой наиболее часто встречающийся статус у процессов в системе. В `man ps` ознакомьтесь (`/PROCESS STATE CODES`) что значат дополнительные к основной заглавной буквы статуса процессов. Его можно не учитывать при расчете (считать S, Ss или Ssl равнозначными).
+
+Самые часто встречающиеся статусы процессов (через команду `ps aux`):
+* `S` процессы, которые ожидают события для завершения, "спящие процессы". Такой процесс можно прервать
+* `I` бездействующие потоки/процессы ядра
+
+Дополнительные статусы:
+* `<`	с высоким приоритетом
+* `N`	с низким приоритетом
+* `L`	процесс имеет заблокированные в памяти сектора для постоянного использования, например для процессов ввода-вывода
+* `s`	процесс - лидер сессии
+* `l`	многопоточный процесс
+* `+` процесс которые запущены из терминала и который не дает возможности далее пользоваться этим терминалов, пока процесс запущен (переднеплановый процесс) 
 
 ---
