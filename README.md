@@ -1,306 +1,411 @@
-## 3.4. Операционные системы, лекция 2
+## 3.5. Файловые системы
 ---
-1. >Используя знания из лекции по systemd, создайте самостоятельно простой unit-файл для node_exporter:
+1. >Узнайте о sparse (разряженных) файлах.
 
-Установка node_exporter проведена по мануалу из ссылки: https://devopscube.com/monitor-linux-servers-prometheus-node-exporter/
-В Vagrantconfig добавлен проброс порта на гостевую машину:
+Sparse file - вид файлов, который вместо хранения последовательности нулевых сегментов хранит информацию об этой последовательности. Проще говоря, по сравнению с обычным файлом, разреженный будет занимать в файловой системе весь выделенный ему объем, а на жесткий диск будет записана только та часть этого файла, которая отлична от нулей (массива нулей).
+
+Примеры использования:
+1) Образы виртуальных ОС - на хост машине такой файл будет занимать место столько, сколько фактически используется виртуальной ОС. (Выделяем для ОС 100Gb, VM заняла 6Gb из 100Gb выделенных, а размер файла в свойствах хост ОС будет равен 6Gb)
+2) При скачивании файла с интернета ОС создает разреженный временный файл равный общему размеру скачанных данных, и затем по мере скачивания, размер файла не увеличивается, но увеличивается количество записанных секторов на физическом носителе хоста.
+
+Создать разреженный файл можно утилитой  `dd`: `dd if=/dev/zero of=file-sparse bs=1 count=0 seek=1G`.
+В linux конвертировать файлы в разряженные можно через `cp`: `cp --sparse=always file_source file_result`.
+
+---
+2. >Могут ли файлы, являющиеся жесткой ссылкой на один объект, иметь разные права доступа и владельца? Почему?
+
+Hardlink и файл для которого эта ссылка создаются имеют одинаковый индексный дескриптор (inode). Следовательно, жесткая ссылка имеет те же права доступа, владельца и время последней модификации, что и целевой файл. Различаются только имена файлов. Фактически жесткая ссылка это еще одно имя для файла.
+
+Докажем. Есть файл `testfile.a` и две жесткие ссылки на него:
 ```
-config.vm.network "forwarded_port", guest: 9100, host: 9100
+vagrant@dev-vm:~/hlink_check$ ls -lh
+total 0
+-rw-rw-r-- 3 vagrant vagrant 0 Jul  9 15:06 root_hlink_testfile
+-rw-rw-r-- 3 vagrant vagrant 0 Jul  9 15:06 testfile.a
+-rw-rw-r-- 3 vagrant vagrant 0 Jul  9 15:06 vagrant_hlink_testfile
 ```
-Unit-файл Node Exporter:
+Поменяем права доступа у одной из них:
 ```
-vagrant@dev-vm:~$ cat /etc/systemd/system/node_exporter.service 
-[Unit]
-Description=Node Exporter
-After=network.target
- 
-[Service]
-User=node_exporter
-Group=node_exporter
-Type=simple
-ExecStart=/usr/local/bin/node_exporter $LOGGING $WEB_SOCKET $CPU_INFO
-EnvironentFile=/etc/default/node_exporter
- 
-[Install]
-WantedBy=multi-user.target
+vagrant@dev-vm:~/hlink_check$ chmod 777 root_hlink_testfile 
+vagrant@dev-vm:~/hlink_check$ ls -lh
+total 0
+-rwxrwxrwx 3 vagrant vagrant 0 Jul  9 15:06 root_hlink_testfile
+-rwxrwxrwx 3 vagrant vagrant 0 Jul  9 15:06 testfile.a
+-rwxrwxrwx 3 vagrant vagrant 0 Jul  9 15:06 vagrant_hlink_testfile
+```
+Затем поменяем владельца ссылки:
+```
+vagrant@dev-vm:~/hlink_check$ sudo chown root:root root_hlink_testfile 
+vagrant@dev-vm:~/hlink_check$ ls -lh
+total 0
+-rwxrwxrwx 3 root root 0 Jul  9 15:06 root_hlink_testfile
+-rwxrwxrwx 3 root root 0 Jul  9 15:06 testfile.a
+-rwxrwxrwx 3 root root 0 Jul  9 15:06 vagrant_hlink_testfile
+```
+Жесткая ссылка, по сути, это еще одно имя файла.
+
+--- 
+3. >Сделайте `vagrant destroy` на имеющийся инстанс Ubuntu. Замените содержимое Vagrantfile...
+
+Выполнено:
+```
+vagrant@vagrant:~$ lsblk
+NAME                      MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+loop0                       7:0    0 61.9M  1 loop /snap/core20/1328
+loop1                       7:1    0 43.6M  1 loop /snap/snapd/14978
+loop2                       7:2    0 67.2M  1 loop /snap/lxd/21835
+sda                         8:0    0   64G  0 disk 
+├─sda1                      8:1    0    1M  0 part 
+├─sda2                      8:2    0  1.5G  0 part /boot
+└─sda3                      8:3    0 62.5G  0 part 
+  └─ubuntu--vg-ubuntu--lv 253:0    0 31.3G  0 lvm  /
+sdb                         8:16   0  2.5G  0 disk 
+sdc                         8:32   0  2.5G  0 disk 
 
 ```
-* >поместите его в автозагрузку
-```
-vagrant@dev-vm:~$ sudo systemctl --all list-unit-files --type=service
 
-UNIT FILE                                  STATE           VENDOR PRESET
+---
+4. >Используя `fdisk`, разбейте первый диск на 2 раздела: 2 Гб, оставшееся пространство.
+
+Выполнено:
+```
+Device     Boot   Start     End Sectors  Size Id Type
+/dev/sdb1          2048 4196351 4194304    2G 83 Linux
+/dev/sdb2       4196352 5242879 1046528  511M 83 Linux
+
+```
+
+---
+5. >Используя `sfdisk`, перенесите данную таблицу разделов на второй диск.
+
+Выполнено:
+```
+vagrant@vagrant:~$ sudo sfdisk -d /dev/sdb | sudo sfdisk /dev/sdc
+Checking that no-one is using this disk right now ... OK
+
+Disk /dev/sdc: 2.51 GiB, 2684354560 bytes, 5242880 sectors
+Disk model: VBOX HARDDISK   
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+
+>>> Script header accepted.
+>>> Script header accepted.
+>>> Script header accepted.
+>>> Script header accepted.
+>>> Created a new DOS disklabel with disk identifier 0x44a2f1db.
+/dev/sdc1: Created a new partition 1 of type 'Linux' and of size 2 GiB.
+/dev/sdc2: Created a new partition 2 of type 'Linux' and of size 511 MiB.
+/dev/sdc3: Done.
+
+New situation:
+Disklabel type: dos
+Disk identifier: 0x44a2f1db
+
+Device     Boot   Start     End Sectors  Size Id Type
+/dev/sdc1          2048 4196351 4194304    2G 83 Linux
+/dev/sdc2       4196352 5242879 1046528  511M 83 Linux
+
+The partition table has been altered.
+Calling ioctl() to re-read partition table.
+Syncing disks.
+
+```
+Результат:
+```
+vagrant@vagrant:~$ lsblk
+NAME                      MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+
 ...
-networkd-dispatcher.service                enabled         enabled      
-node_exporter.service                      enabled         enabled      
-ondemand.service                           enabled         enabled   
-...
-```
-* >предусмотрите возможность добавления опций к запускаемому процессу через внешний файл
 
-В файле `/etc/systemd/system/node_exporter.service`:
-```
-[Service]
-ExecStart=/usr/local/bin/node_exporter $LOGGING $WEB_SOCKET $CPU_INFO
-EnvironentFile=/etc/default/node_exporter
-```
-Файл `/etc/default/node_exporter`:
-```
-vagrant@dev-vm:~$ cat /etc/default/node_exporter 
-WEB_SOCKET="--web.listen-address=":9100""
-LOGGING="--log.level=info"
-CPU_INFO="--collector.cpu.info"
-VERSION="--version"
-```
-Результат добавления опций можно посмотреть в файле environ процесса node_exporter:
-```
-vagrant@dev-vm:~$ sudo cat /proc/2847/environ
-LANG=en_US.UTF-8PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/binHOME=/home/node_exporterLOGNAME=node_exporterUSER=node_exporterINVOCATION_ID=54960b0fb82b44bd8ae5865e47faf9abJOURNAL_STREAM=9:37603WEB_SOCKET=--web.listen-address=":9100"LOGGING=--log.level=infoCPU_INFO=--collector.cpu.infoVERSION=--version
-```
-* >удостоверьтесь, что с помощью systemctl процесс корректно стартует, завершается, а после перезагрузки автоматически поднимается
-Чтобы убедиться, что модуль запускается и добавить его в автозапуск достаточно выполнить следующую серию команд:
-```
-vagrant@dev-vm:~$ sudo systemctl daemon-reload
+sdb                         8:16   0  2.5G  0 disk 
+├─sdb1                      8:17   0    2G  0 part 
+└─sdb2                      8:18   0  511M  0 part 
+sdc                         8:32   0  2.5G  0 disk 
+├─sdc1                      8:33   0    2G  0 part 
+└─sdc2                      8:34   0  511M  0 part 
 
-vagrant@dev-vm:~$ sudo systemctl start node_exporter
-
-vagrant@dev-vm:~$ systemctl status node_exporter
-● node_exporter.service - Node Exporter
-     Loaded: loaded (/etc/systemd/system/node_exporter.service; enabled; vendor preset: enabled)
-     Active: active (running) since Wed 2022-07-06 11:04:55 UTC; 2h 1min ago
-   Main PID: 2847 (node_exporter)
-      Tasks: 4 (limit: 2274)
-     Memory: 2.3M
-     CGroup: /system.slice/node_exporter.service
-             └─2847 /usr/local/bin/node_exporter --log.level=info --web.listen-address=:9100 --collector.cp>
-
-vagrant@dev-vm:~$ sudo systemctl enable node_exporter
 ```
-После перезагрузки VM автозапуск процесса выполняется в штатном режиме.
-
 ---
-2. >Ознакомьтесь с опциями node_exporter и выводом `/metrics` по-умолчанию. Приведите несколько опций, которые вы бы выбрали для базового мониторинга хоста по CPU, памяти, диску и сети.
-#### CPU: количество секунд, затраченных ЦП в каждом режиме для каждого ядра
-- node_cpu_seconds_total{cpu="0",mode="idle"} 2696.79
-- node_cpu_seconds_total{cpu="0",mode="iowait"} 1.64
-- node_cpu_seconds_total{cpu="0",mode="irq"} 0
-- node_cpu_seconds_total{cpu="0",mode="nice"} 0
-- node_cpu_seconds_total{cpu="0",mode="softirq"} 1.14
-- node_cpu_seconds_total{cpu="0",mode="steal"} 0
-- node_cpu_seconds_total{cpu="0",mode="system"} 4.82
-- node_cpu_seconds_total{cpu="0",mode="user"} 2.66
+6. >Соберите `mdadm` RAID1 на паре разделов 2 Гб.
 
-#### RAM: доступный и общий объем RAM и SWAP
-- node_memory_MemAvailable_bytes 1.759883264e+09
-- node_memory_MemFree_bytes 1.092694016e+09
-- node_memory_MemTotal_bytes 2.079461376e+09
-- node_memory_SwapCached_bytes 0
-- node_memory_SwapFree_bytes 2.047864832e+09
-- node_memory_SwapTotal_bytes 2.047864832e+09
-
-#### DISK: записанное/прочитанное количество байт и количество этих итераций для каждого диска 
-- node_disk_written_bytes_total{device="sda"} 9.396224e+07
-- node_disk_writes_completed_total{device="sda"} 4410
-- node_disk_reads_completed_total{device="sda"} 17518
-- node_disk_read_bytes_total{device="sda"} 5.67432192e+08
-
-#### NETWORK: количество переданных/полученных байт, пакетов и сколько было ошибок в приеме и передаче пакетов для каждого сетевого адаптера
-- node_network_transmit_bytes_total{device="eth0"} 345174
-- node_network_transmit_packets_total{device="eth0"} 3460
-- node_network_transmit_errs_total{device="eth0"} 0
-- node_network_receive_bytes_total{device="eth0"} 3.1194863e+07
-- node_network_receive_packets_total{device="eth0"} 24526
-- node_network_receive_errs_total{device="eth0"} 0
-
----
-3. >Установите в свою виртуальную машину Netdata.
-
-Netdata установлен:
+Используем команду `sudo mdadm --create --verbose /dev/md1 -l raid1 -n 2 /dev/sd{b2,c2}`. `-l` - уровень рейд массива, `-n` - количество разделов.
 ```
-vagrant@dev-vm:~$ systemctl status netdata
-● netdata.service - netdata - Real-time performance monitoring
-     Loaded: loaded (/lib/systemd/system/netdata.service; enabled; vendor preset: enabled)
-     Active: active (running) since Thu 2022-07-07 09:10:35 UTC; 3min 50s ago
-       Docs: man:netdata
-             file:///usr/share/doc/netdata/html/index.html
-             https://github.com/netdata/netdata
-   Main PID: 653 (netdata)
-      Tasks: 22 (limit: 2274)
-     Memory: 69.1M
-     CGroup: /system.slice/netdata.service
-             ├─653 /usr/sbin/netdata -D
-             ├─800 /usr/lib/netdata/plugins.d/nfacct.plugin 1
-             ├─805 /usr/lib/netdata/plugins.d/apps.plugin 1
-             └─814 bash /usr/lib/netdata/plugins.d/tc-qos-helper.sh 1
-
-Jul 07 09:10:35 dev-vm systemd[1]: Started netdata - Real-time performance monitoring.
-Jul 07 09:10:36 dev-vm netdata[653]: SIGNAL: Not enabling reaper
-Jul 07 09:10:36 dev-vm netdata[653]: 2022-07-07 09:10:36: netdata INFO  : MAIN : SIGNAL: Not enabling reaper
-vagrant@dev-vm:~$ 
-
-```
-Сделан проброс порта `config.vm.network "forwarded_port", guest: 19999, host: 19999`.
-```
-vagrant@dev-vm:~$ sudo lsof -i :19999
-COMMAND PID    USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
-netdata 653 netdata    4u  IPv4  23502      0t0  TCP *:19999 (LISTEN)
-netdata 653 netdata   47u  IPv4  31828      0t0  TCP dev-vm:19999->_gateway:65106 (ESTABLISHED)
-netdata 653 netdata   49u  IPv4  33068      0t0  TCP dev-vm:19999->_gateway:65107 (ESTABLISHED)
-netdata 653 netdata   50u  IPv4  33073      0t0  TCP dev-vm:19999->_gateway:65111 (ESTABLISHED)
-netdata 653 netdata   51u  IPv4  31830      0t0  TCP dev-vm:19999->_gateway:65131 (ESTABLISHED)
-netdata 653 netdata   52u  IPv4  33071      0t0  TCP dev-vm:19999->_gateway:65109 (ESTABLISHED)
-netdata 653 netdata   53u  IPv4  31832      0t0  TCP dev-vm:19999->_gateway:65134 (ESTABLISHED)
-```
-Полный перечень метрик и плагинов netdata можно посмотреть в http://localhost:19999/netdata.conf
-
----
-4. >Можно ли по выводу `dmesg` понять, осознает ли ОС, что загружена не на настоящем оборудовании, а на системе виртуализации?
-
-Да, в логах можно найти информацию, что машина запущена в виртуальной среде:
-```
-vagrant@dev-vm:/etc/netdata$ sudo dmesg | grep "Hypervisor detected"
-[    0.000000] Hypervisor detected: KVM
-vagrant@dev-vm:/etc/netdata$ dmesg | grep virtual
-[    0.002462] CPU MTRRs all blank - virtualized system.
-[    0.119719] Booting paravirtualized kernel on KVM
-[    4.032810] systemd[1]: Detected virtualization oracle.
-```
-Можно воспользоваться утилитой dmidecode для получения информации об ОС:
-```
-vagrant@dev-vm:/etc/netdata$ sudo dmidecode -t system
-# dmidecode 3.2
-Getting SMBIOS data from sysfs.
-SMBIOS 2.5 present.
-
-Handle 0x0001, DMI type 1, 27 bytes
-System Information
-	Manufacturer: innotek GmbH
-	Product Name: VirtualBox
-	Version: 1.2
-	Serial Number: 0
-	UUID: 35bf98c3-8179-a441-81fc-a41b1ebbca26
-	Wake-up Type: Power Switch
-	SKU Number: Not Specified
-	Family: Virtual Machine
-```
-----
-5. >Как настроен sysctl `fs.nr_open` на системе по-умолчанию? Узнайте, что означает этот параметр.
-
-Из `man proc`:
-```
-/proc/sys/fs/nr_open (since Linux 2.6.25)
-              This  file  imposes  ceiling on the value to which the RLIMIT_NOFILE resource limit can be
-              raised (see getrlimit(2)).  This ceiling is enforced for both unprivileged and  privileged
-              process.   The  default  value in this file is 1048576.  (Before Linux 2.6.25, the ceiling
-              for RLIMIT_NOFILE was hard-coded to the same value.)
-```
-Из `man getrlimit`:
-```
-RLIMIT_NOFILE
-              This specifies a value one greater than the maximum file descriptor  number  that  can  be
-              opened  by  this process.
-```
-fs.nr_open - максимальное количество файловых дескрипторов на один процесс.
-Число по умолчанию = 1048576. Это число устанавливается и для привилегированных (принадлежащих  root) процессов, и для непривилегированных.
-```
-vagrant@dev-vm:/etc/netdata$ sysctl -n fs.nr_open
-1048576
-```
-У процесса с PID=1 указано такое количество файловых дескрипторов:
-```
-vagrant@dev-vm:/etc/netdata$ cat /proc/1/limits | grep 'open files'
-Max open files            1048576              1048576              files  
-```
-Общий максимальный количественный лимит для ОС на все процессы:
-```
-vagrant@dev-vm:/etc/netdata$ cat /proc/sys/fs/file-max
-9223372036854775807
-```
->Какой другой существующий лимит не позволит достичь такого числа (`ulimit --help`)?
-
-Процессы имеют так называемые soft limit и hard limit на использование файловых дескрипторов (Max open files). Если процесс запущен обычным пользователем, то количество файловых дескрипторов устанавливается по умолчанию из soft limit и не превышает hard limit. Только root пользователь может менять значение hard limit у процессов.
-soft limit <= hard limit <= fs.nr_open 
-
----
-6. >Запустите любой долгоживущий процесс (не `ls`, который отработает мгновенно, а, например, `sleep 1h`) в отдельном неймспейсе процессов; покажите, что ваш процесс работает под PID 1 через `nsenter`. Для простоты работайте в данном задании под root (`sudo -i`). Под обычным пользователем требуются дополнительные опции (`--map-root-user`) и т.д.
-
-Запустим процесс sleep под root - `unshare -f -p --mount-proc sleep 1h`.
-В пользовательском пространстве имен он выглядит так:
-```
-vagrant@dev-vm:~$ ps aux | grep sleep
-root        1640  0.0  0.0   7232   584 pts/0    S+   11:02   0:00 unshare -f -p --mount-proc sleep 1h
-root        1641  0.0  0.0   7228   516 pts/0    S+   11:02   0:00 sleep 1h
-```
-Переключимся в namespace этого процесса и посмотрим его PID:
-```
-vagrant@dev-vm:~$ sudo nsenter --target 1641 --pid --mount
-
-root@dev-vm:/# ps aux | grep sleep
-root           1  0.0  0.0   7228   516 pts/0    S+   11:02   0:00 sleep 1h
-root          26  0.0  0.0   8160   720 pts/1    S+   11:08   0:00 grep --color=auto sleep
-
-root@dev-vm:/# pstree -p
-sleep(1)
+vagrant@vagrant:~$ cat /proc/mdstat 
+Personalities : [linear] [multipath] [raid0] [raid1] [raid6] [raid5] [raid4] [raid10] 
+md1 : active raid1 sdc1[1] sdb1[0]
+      2094080 blocks super 1.2 [2/2] [UU]
 ```
 
 ---
-7. >Найдите информацию о том, что такое `:(){ :|:& };:`. Запустите эту команду в своей виртуальной машине Vagrant с Ubuntu 20.04 (это важно, поведение в других ОС не проверялось). Некоторое время все будет "плохо", после чего (минуты) – ОС должна стабилизироваться. Вызов dmesg расскажет, какой механизм помог автоматической стабилизации. Как настроен этот механизм по-умолчанию, и как изменить число процессов, которое можно создать в сессии?
+7. >Соберите `mdadm` RAID0 на второй паре маленьких разделов.
 
-`:(){ :|:& };:` - это bash функция, другое ее название - "fork bomb". Что-то похожее на форму DoS атаки на Linux или Unix-based системы. Функция выполняется рекурсивно.
+```
+vagrant@vagrant:~$ sudo mdadm --create --verbose /dev/md0 -l raid0 -n 2 /dev/sd{b2,c2}
+mdadm: chunk size defaults to 512K
+mdadm: Defaulting to version 1.2 metadata
+mdadm: array /dev/md0 started.
+vagrant@vagrant:~$ cat /proc/mdstat 
+Personalities : [linear] [multipath] [raid0] [raid1] [raid6] [raid5] [raid4] [raid10] 
+md0 : active raid0 sdc2[1] sdb2[0]
+      1042432 blocks super 1.2 512k chunks
+      
+md1 : active raid1 sdc1[1] sdb1[0]
+      2094080 blocks super 1.2 [2/2] [UU]
+```
 
-1) Определяем функцию `:` без параметров - `:()`
-2) В блоке `{ }` функции она вызывает сама себя и направит вывод в вызов другой функции `:`
-3) `&` помещает вызов функции в фон, таким образом эта функция не завершается и продолжает занимать ресурсы.
-4) `;` завершает определение функции
-5) `:` это вызов функции
-``` 
-:()
-{
- :|:&
-};:
+
+---
+8. >Создайте 2 независимых PV на получившихся md-устройствах.
+
+Сделано.
 ```
-Таким образом, bash фунция порождает в геометрической последовательности своих потомков и быстро расходует лимит одновременно запущенных процессов.
-Через dmesg видно, что на каком-то этапе было заблокировано создание новых процессов (fork rejected):
+vagrant@vagrant:~$ sudo pvcreate /dev/md0 /dev/md1
+  Physical volume "/dev/md0" successfully created.
+  Physical volume "/dev/md1" successfully created.
 ```
-[Fri Jul  8 08:55:39 2022] cgroup: fork rejected by pids controller in /user.slice/user-1000.slice/session-1.scope
+
+---
+9. >Создайте общую volume-group на этих двух PV.
+
+Готово. Теперь в VM две группы томов.
 ```
-Ulimit поможет установить ограничение на количество запущенных процессов для пользователя.
+vagrant@vagrant:~$ sudo vgcreate vg_mutual /dev/md1 /dev/md0
+  Volume group "vg_mutual" successfully created
+
+vagrant@vagrant:~$ sudo vgdisplay
+  --- Volume group ---
+  VG Name               ubuntu-vg
+  System ID             
+  Format                lvm2
+  Metadata Areas        1
+  Metadata Sequence No  2
+  VG Access             read/write
+  VG Status             resizable
+  MAX LV                0
+  Cur LV                1
+  Open LV               1
+  Max PV                0
+  Cur PV                1
+  Act PV                1
+  VG Size               <62.50 GiB
+  PE Size               4.00 MiB
+  Total PE              15999
+  Alloc PE / Size       7999 / <31.25 GiB
+  Free  PE / Size       8000 / 31.25 GiB
+  VG UUID               4HbbNB-kISH-fXeQ-qzbV-XeNd-At34-cCUUuJ
+   
+  --- Volume group ---
+  VG Name               vg_mutual
+  System ID             
+  Format                lvm2
+  Metadata Areas        2
+  Metadata Sequence No  1
+  VG Access             read/write
+  VG Status             resizable
+  MAX LV                0
+  Cur LV                0
+  Open LV               0
+  Max PV                0
+  Cur PV                2
+  Act PV                2
+  VG Size               <2.99 GiB
+  PE Size               4.00 MiB
+  Total PE              765
+  Alloc PE / Size       0 / 0   
+  Free  PE / Size       765 / <2.99 GiB
+  VG UUID               zBGJU1-ESML-zyPc-k4oG-YIbz-xokL-E2vGru
 ```
-ulimit: ulimit [-SHabcdefiklmnpqrstuvxPT] [limit]
-    Modify shell resource limits.
-    
-    Provides control over the resources available to the shell and processes
-    it creates, on systems that allow such control.
-    
-    Options:
-      -S	use the `soft' resource limit
-      -H	use the `hard' resource limit
-      -a	all current limits are reported
-      -b	the socket buffer size
-      -c	the maximum size of core files created
-      -d	the maximum size of a process's data segment
-      -e	the maximum scheduling priority (`nice')
-      -f	the maximum size of files written by the shell and its children
-      -i	the maximum number of pending signals
-      -k	the maximum number of kqueues allocated for this process
-      -l	the maximum size a process may lock into memory
-      -m	the maximum resident set size
-      -n	the maximum number of open file descriptors
-      -p	the pipe buffer size
-      -q	the maximum number of bytes in POSIX message queues
-      -r	the maximum real-time scheduling priority
-      -s	the maximum stack size
-      -t	the maximum amount of cpu time in seconds
-      -u	the maximum number of user processes
-      -v	the size of virtual memory
-      -x	the maximum number of file locks
-      -P	the maximum number of pseudoterminals
-      -T	the maximum number of threads
+
+---
+10. >Создайте LV размером 100 Мб, указав его расположение на PV с RAID0.
 ```
-Для измения числа процессов в сессии пользователя можно нужно установить ulimit с флагом `-u`.
-По умолчанию, максимальное число процессов для пользователя в VM = 7580
+vagrant@vagrant:~$ sudo lvcreate -L 100M -n lv_100Mb vg_mutual /dev/md0
+  Logical volume "lv_100Mb" created.
+
+vagrant@vagrant:~$ sudo lvdisplay
+  --- Logical volume ---
+  LV Path                /dev/ubuntu-vg/ubuntu-lv
+  LV Name                ubuntu-lv
+  VG Name                ubuntu-vg
+  LV UUID                mJ8K7e-F4uw-o8Sx-iwt0-JfLQ-Dpoh-E7lSU1
+  LV Write Access        read/write
+  LV Creation host, time ubuntu-server, 2022-06-07 11:41:15 +0000
+  LV Status              available
+  # open                 1
+  LV Size                <31.25 GiB
+  Current LE             7999
+  Segments               1
+  Allocation             inherit
+  Read ahead sectors     auto
+  - currently set to     256
+  Block device           253:0
+   
+  --- Logical volume ---
+  LV Path                /dev/vg_mutual/lv_100Mb
+  LV Name                lv_100Mb
+  VG Name                vg_mutual
+  LV UUID                xZ8BWi-qrJ8-Gfif-9ykT-WDFZ-4z6y-OB0jFZ
+  LV Write Access        read/write
+  LV Creation host, time vagrant, 2022-07-09 14:51:00 +0000
+  LV Status              available
+  # open                 0
+  LV Size                100.00 MiB
+  Current LE             25
+  Segments               1
+  Allocation             inherit
+  Read ahead sectors     auto
+  - currently set to     4096
+  Block device           253:1
 ```
-vagrant@dev-vm:~$ ulimit -u
-7580
+---
+11. >Создайте `mkfs.ext4` ФС на получившемся LV.
+
 ```
+vagrant@vagrant:~$ sudo mkfs.ext4 /dev/vg_mutual/lv_100Mb
+mke2fs 1.45.5 (07-Jan-2020)
+Creating filesystem with 25600 4k blocks and 25600 inodes
+
+Allocating group tables: done                            
+Writing inode tables: done                            
+Creating journal (1024 blocks): done
+Writing superblocks and filesystem accounting information: done
+```
+
+---
+12. >Смонтируйте этот раздел в любую директорию, например, `/tmp/new`.
+
+LVM будет смонтирована в директорию `/tmp/curious_dir`:
+```
+vagrant@vagrant:~$ mkdir /tmp/curious_dir
+
+vagrant@vagrant:~$ sudo mount /dev/vg_mutual/lv_100Mb /tmp/curious_dir
+```
+---
+13. >Поместите туда тестовый файл, например `wget https://mirror.yandex.ru/ubuntu/ls-lR.gz -O /tmp/new/test.gz`.
+```
+vagrant@vagrant:~$ sudo wget https://mirror.yandex.ru/ubuntu/ls-lR.gz -O /tmp/curious_dir/test.gz
+--2022-07-09 19:35:17--  https://mirror.yandex.ru/ubuntu/ls-lR.gz
+Resolving mirror.yandex.ru (mirror.yandex.ru)... 213.180.204.183, 2a02:6b8::183
+Connecting to mirror.yandex.ru (mirror.yandex.ru)|213.180.204.183|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 23792149 (23M) [application/octet-stream]
+Saving to: ‘/tmp/curious_dir/test.gz’
+
+/tmp/curious_dir/test.gz                               100%[============================================================================================================================>]  22.69M  3.25MB/s    in 8.7s    
+
+2022-07-09 19:35:26 (2.60 MB/s) - ‘/tmp/curious_dir/test.gz’ saved [23792149/23792149]
+```
+
+---
+14. >Прикрепите вывод `lsblk`.	
+```
+vagrant@vagrant:~$ lsblk
+NAME                      MAJ:MIN RM  SIZE RO TYPE  MOUNTPOINT
+loop0                       7:0    0 61.9M  1 loop  /snap/core20/1328
+loop1                       7:1    0 43.6M  1 loop  /snap/snapd/14978
+loop2                       7:2    0 67.2M  1 loop  /snap/lxd/21835
+loop3                       7:3    0 61.9M  1 loop  /snap/core20/1518
+loop4                       7:4    0 67.8M  1 loop  /snap/lxd/22753
+sda                         8:0    0   64G  0 disk  
+├─sda1                      8:1    0    1M  0 part  
+├─sda2                      8:2    0  1.5G  0 part  /boot
+└─sda3                      8:3    0 62.5G  0 part  
+  └─ubuntu--vg-ubuntu--lv 253:0    0 31.3G  0 lvm   /
+sdb                         8:16   0  2.5G  0 disk  
+├─sdb1                      8:17   0    2G  0 part  
+│ └─md1                     9:1    0    2G  0 raid1 
+└─sdb2                      8:18   0  511M  0 part  
+  └─md0                     9:0    0 1018M  0 raid0 
+    └─vg_mutual-lv_100Mb  253:1    0  100M  0 lvm   /tmp/curious_dir
+sdc                         8:32   0  2.5G  0 disk  
+├─sdc1                      8:33   0    2G  0 part  
+│ └─md1                     9:1    0    2G  0 raid1 
+└─sdc2                      8:34   0  511M  0 part  
+  └─md0                     9:0    0 1018M  0 raid0 
+    └─vg_mutual-lv_100Mb  253:1    0  100M  0 lvm   /tmp/curious_dir
+
+```
+---
+15. >Протестируйте целостность файла:
+```
+vagrant@vagrant:/tmp/curious_dir$ sudo gzip -t /tmp/curious_dir/test.gz
+ 
+vagrant@vagrant:/tmp/curious_dir$ echo $?
+0
+```
+
+---
+16. >Используя pvmove, переместите содержимое PV с RAID0 на RAID1.
+```
+vagrant@vagrant:/tmp/curious_dir$ sudo pvmove /dev/md0
+  /dev/md0: Moved: 4.00%
+  /dev/md0: Moved: 100.00%
+
+vagrant@vagrant:/tmp/curious_dir$ lsblk
+NAME                      MAJ:MIN RM  SIZE RO TYPE  MOUNTPOINT
+loop0                       7:0    0 61.9M  1 loop  /snap/core20/1328
+loop1                       7:1    0 43.6M  1 loop  /snap/snapd/14978
+loop2                       7:2    0 67.2M  1 loop  /snap/lxd/21835
+loop3                       7:3    0 61.9M  1 loop  /snap/core20/1518
+loop4                       7:4    0 67.8M  1 loop  /snap/lxd/22753
+sda                         8:0    0   64G  0 disk  
+├─sda1                      8:1    0    1M  0 part  
+├─sda2                      8:2    0  1.5G  0 part  /boot
+└─sda3                      8:3    0 62.5G  0 part  
+  └─ubuntu--vg-ubuntu--lv 253:0    0 31.3G  0 lvm   /
+sdb                         8:16   0  2.5G  0 disk  
+├─sdb1                      8:17   0    2G  0 part  
+│ └─md1                     9:1    0    2G  0 raid1 
+│   └─vg_mutual-lv_100Mb  253:1    0  100M  0 lvm   /tmp/curious_dir
+└─sdb2                      8:18   0  511M  0 part  
+  └─md0                     9:0    0 1018M  0 raid0 
+sdc                         8:32   0  2.5G  0 disk  
+├─sdc1                      8:33   0    2G  0 part  
+│ └─md1                     9:1    0    2G  0 raid1 
+│   └─vg_mutual-lv_100Mb  253:1    0  100M  0 lvm   /tmp/curious_dir
+└─sdc2                      8:34   0  511M  0 part  
+  └─md0                     9:0    0 1018M  0 raid0 
+```
+
+---
+17. >Сделайте `--fail` на устройство в вашем RAID1 md.
+```
+vagrant@vagrant:/tmp/curious_dir$ sudo mdadm /dev/md1 --fail /dev/sdc1
+mdadm: set /dev/sdc1 faulty in /dev/md1
+
+vagrant@vagrant:/tmp/curious_dir$ cat /proc/mdstat 
+Personalities : [linear] [multipath] [raid0] [raid1] [raid6] [raid5] [raid4] [raid10] 
+md0 : active raid0 sdc2[1] sdb2[0]
+      1042432 blocks super 1.2 512k chunks
+      
+md1 : active raid1 sdc1[1](F) sdb1[0]
+      2094080 blocks super 1.2 [2/1] [U_]
+```
+---
+18. > Подтвердите выводом `dmesg`, что RAID1 работает в деградированном состоянии.
+```
+[12943.901280] md/raid1:md1: Disk failure on sdc1, disabling device.
+               md/raid1:md1: Operation continuing on 1 devices.
+```
+---
+19. >Протестируйте целостность файла, несмотря на "сбойный" диск он должен продолжать быть доступен:
+```
+vagrant@vagrant:/tmp/curious_dir$ sudo gzip -t /tmp/curious_dir/test.gz
+ 
+vagrant@vagrant:/tmp/curious_dir$ echo $?
+0
+
+```
+---
+20. >Погасите тестовый хост, `vagrant destroy`.
+```
+[vainoord@vnrd-mypc:vagrant_conf]$ vagrant halt
+==> default: Attempting graceful shutdown of VM...
+
+[vainoord@vnrd-mypc:vagrant_conf]$ vagrant destroy
+    default: Are you sure you want to destroy the 'default' VM? [y/N] y
+==> default: Destroying VM and associated drives...
+```
+
 ---
