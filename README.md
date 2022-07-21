@@ -1,214 +1,198 @@
-## 3.6. Компьютерные сети, лекция 1
+## 3.6. Компьютерные сети, лекция 2
 ---
-1. >Работа c HTTP через телнет.
-   >* Подключитесь утилитой телнет к сайту stackoverflow.com telnet stackoverflow.com 80
-   >* отправьте HTTP запрос
-   >* В ответе укажите полученный HTTP код, что он означает?
+1. >Проверьте список доступных сетевых интерфейсов на вашем компьютере. Какие команды есть для этого в Linux и в Windows?
+
+linux:
+`ifconfig`, 
+`ip a`
+
+windows:
+`ipconfig /all`
+
+macos:
+`ifconfig`, 
+`networksetup -listnetworkserviceorder`
 ```
-	GET /questions HTTP/1.0
-	HOST: stackoverflow.com
-	[press enter]
-	[press enter]
-```
+[vainoord@vnrd-mypc:devops-netology]$ ifconfig
+lo0: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST> mtu 16384
+	options=1203<RXCSUM,TXCSUM,TXSTATUS,SW_TIMESTAMP>
+	inet 127.0.0.1 netmask 0xff000000 
+	inet6 ::1 prefixlen 128 
+	inet6 fe80::1%lo0 prefixlen 64 scopeid 0x1 
+	nd6 options=201<PERFORMNUD,DAD>
+gif0: flags=8010<POINTOPOINT,MULTICAST> mtu 1280
+stf0: flags=0<> mtu 1280
+ap1: flags=8802<BROADCAST,SIMPLEX,MULTICAST> mtu 1500
+	options=400<CHANNEL_IO>
+	ether a6:83:e7:d2:27:fe 
+	media: autoselect
+	status: inactive
+en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	options=6463<RXCSUM,TXCSUM,TSO4,TSO6,CHANNEL_IO,PARTIAL_CSUM,ZEROINVERT_CSUM>
+	ether a4:83:e7:d2:27:fe 
+	inet6 fe80::869:8bee:f7c0:6e21%en0 prefixlen 64 secured scopeid 0x6 
+	inet 172.19.220.11 netmask 0xffffff80 broadcast 172.19.220.127
+	nd6 options=201<PERFORMNUD,DAD>
+	media: autoselect
+	status: active
+awdl0: flags=8943<UP,BROADCAST,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500
+	options=400<CHANNEL_IO>
+	ether 9a:89:ee:8a:69:d0 
+	inet6 fe80::9889:eeff:fe8a:69d0%awdl0 prefixlen 64 scopeid 0x7 
+	nd6 options=201<PERFORMNUD,DAD>
+	media: autoselect
+	status: active
+llw0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	options=400<CHANNEL_IO>
+	ether 9a:89:ee:8a:69:d0 
+	inet6 fe80::9889:eeff:fe8a:69d0%llw0 prefixlen 64 scopeid 0x8 
+	nd6 options=201<PERFORMNUD,DAD>
+	media: autoselect
+	status: active
+``` 
 
 ```
-vagrant@dev-vm:~$ telnet stackoverflow.com 80
-Trying 151.101.129.69...
-Connected to stackoverflow.com.
-Escape character is '^]'.
-GET /questions HTTP/1.0
-HOST: stackoverflow.com
+[vainoord@vnrd-mypc:~]$ networksetup -listnetworkserviceorder
+An asterisk (*) denotes that a network service is disabled.
+(1) USB 10/100 LAN
+(Hardware Port: USB 10/100 LAN, Device: en6)
 
-HTTP/1.1 301 Moved Permanently
-cache-control: no-cache, no-store, must-revalidate
-location: https://stackoverflow.com/questions
-x-request-guid: b35e3f6f-38bf-43b9-b972-2d5b800a1df8
-feature-policy: microphone 'none'; speaker 'none'
-content-security-policy: upgrade-insecure-requests; frame-ancestors 'self' https://stackexchange.com
-Accept-Ranges: bytes
-Date: Tue, 12 Jul 2022 18:36:24 GMT
-Via: 1.1 varnish
-Connection: close
-X-Served-By: cache-ams21080-AMS
-X-Cache: MISS
-X-Cache-Hits: 0
-X-Timer: S1657650985.799582,VS0,VE74
-Vary: Fastly-SSL
-X-DNS-Prefetch-Control: off
-Set-Cookie: prov=4299af14-cbd8-405e-4937-973d0c7ba4a5; domain=.stackoverflow.com; expires=Fri, 01-Jan-2055 00:00:00 GMT; path=/; HttpOnly
+(2) Wi-Fi
+(Hardware Port: Wi-Fi, Device: en0)
 
-Connection closed by foreign host.
-```   
+(3) Thunderbolt Bridge
+(Hardware Port: Thunderbolt Bridge, Device: bridge0)
 
-Запрос вернул HTTP код 301 - возможно настроен принудительный редирект с 80 порта. И соединение было закрыто удаленным хостом.
-
+(4) VM_bridge
+(Hardware Port: VM_bridge, Device: bridge1)
+```
 ---
-2. >Повторите задание 1 в браузере, используя консоль разработчика F12
-   >* откройте вкладку Network
-   >* отправьте запрос http://stackoverflow.com
-   >* найдите первый ответ HTTP сервера, откройте вкладку Headers
-   >* укажите в ответе полученный HTTP код.
-   >* проверьте время загрузки страницы, какой запрос обрабатывался дольше всего?
-   >* приложите скриншот консоли браузера в ответ.
+2. >Какой протокол используется для распознавания соседа по сетевому интерфейсу? Какой пакет и команды есть в Linux для этого?
 
-![http запрос](images/scr1.png)
+CDP и LLDP. Первый - проприетарный протокол Cisco, используется только на их устройствах. Второй - open source протокол для разных вендоров.
 
-![тайминг http](images/scr2.png)
-
-![https запрос](images/scr3.png)
-
-![тайминг https](images/scr4.png)
+В Linux есть пакет lldpd.
+Команды:
+`lldpcli`, `lldpctl`
 
 --- 
-3. > Какой IP адрес у вас в интернете?
+3. > Какая технология используется для разделения L2 коммутатора на несколько виртуальных сетей? Какой пакет и команды есть в Linux для этого? Приведите пример конфига.
 
-83.219.72.166
+VLAN технология.
+В Linux существует одноименный пакет vlan.
 
-![мой public IP](images/scr5.png)
+Пример настройки в `/etc/network/interfaces`:
+```
+auto eth0
+iface eth0 inet static
+address 192.168.1.10
+netmask 255.255.255.0
+gateway 192.168.1.1
+
+auto eth0.500
+iface eth0.500 inet static
+address 172.19.120.29
+netmask 255.255.240.0
+vlan_raw_device eth0
+```
+С такой конфигурацией на сетевой порт eth0 будет прописан vlan 500. Нетегированный трафик будет приходить в подсеть 192.168.1.0/24. Тегированный трафик с тегом 500 - в подсеть 172.19.120.16/28.
+
+ 
 
 ---
-4. >Какому провайдеру принадлежит ваш IP адрес? Какой автономной системе AS? Воспользуйтесь утилитой `whois`
+4. >Какие типы агрегации интерфейсов есть в Linux? Какие опции есть для балансировки нагрузки? Приведите пример конфига.
 
+LACP (Link Aggregation Control Protocol) - cпецификация, позволяющая объединять несколько физических каналов Ethernet в наших сетевых устройствах для формирования единого логического канала и включения балансировки нагрузки в наших интерфейсах.
+В Cisco есть проприетарный протокол PAgP (Port Aggregation Protocol).
+
+В linux для этого используется Bonding – объединение сетевых интерфейсов по типу агрегации, необходимо для увеличения пропускной способности и создания отказоустойчивости на сегменте сети.
+
+Опции балансировки:
+* Mode 0: Balance Round-Robin (balance-rr) - передача пакетов в последовательном порядке начиная с первого доступного slave порта. Этот режим обеспечивает балансировку нагрузки и отказоустойчивость. Используется по-умолчанию.
+* Mode 1: Active-Backup - активен только один порт из пары. Другой в ожидании и становится активным тогда и только тогда, когда активный первый порт выходит из строя. Обеспечивает отказоустойчивость.
+* Mode 2: Balance-xor - передача на основе выбранной политики хэширования передачи. Политика по умолчанию [(MAC-адрес источника XOR с MAC-адресом назначения) % количество портов]. Этот режим обеспечивает балансировку нагрузки и отказоустойчивость.
+* Mode 3: Broadcast - с такой опцией передача трафика идет во все объединенные интерфейсы. Этот режим обеспечивает отказоустойчивость.
+* Mode 4: 802.3ad - LACP. Динамическое объединение портов. Обеспечение отказоустойчивости и увеличение пропускной способности трафика между узлами входящего и исходящего трафика.
+* Mode 5 – Adaptive transmit load balancing (balance-tlb) - адаптивная балансировка нагрузки при передаче: объединение каналов, не требующее специальной поддержки коммутатора. Исходящий трафик распределяется в соответствии с текущей нагрузкой (вычисляемой относительно скорости) на каждом ведомом устройстве. Входящий трафик принимается текущим ведомым устройством. Если принимающее ведомое устройство выходит из строя, другое ведомое устройство принимает MAC-адрес отказавшего принимающего ведомого устройства.
+* Mode 6: Adaptive load balancing (balance-alb) - адаптивная балансировка нагрузки: включает balance-tlb плюс балансировку нагрузки на прием (rlb) для трафика IPV4 и не требует какой-либо специальной поддержки коммутатора. Балансировка нагрузки на прием достигается путем согласования ARP.
+
+Пример конфигурации - агрегация ethernet порта и wlan порта на ноутбуке в mode 1:
 ```
-[vainoord@vnrd-mypc:~]$ whois -h whois.ripe.net 83.219.72.166
-inetnum:        83.219.72.0 - 83.219.79.255
-netname:        NL-IS-SYSCONAUT
-descr:          cust 20206-05901732.1
-country:        NL
-admin-c:        AS15879-RIPE
-tech-c:         AS15879-RIPE
-status:         ASSIGNED PA
-mnt-by:         KPNIS-MNT
-created:        2016-11-10T15:59:41Z
-last-modified:  2020-09-07T18:01:14Z
-source:         RIPE
+# Define slaves - eth0 
+auto eth0
+iface eth0 inet manual
+    bond-master bond0
+    bond-primary eth0
+    bond-mode active-backup
 
+# Define slaves - wlan0
+auto wlan0
+iface wlan0 inet manual
+    wpa-conf /etc/network/wpa.conf
+    bond-master bond0
+    bond-primary eth0
+    bond-mode active-backup
+
+# Define master - bond0
+auto bond0
+iface bond0 inet dhcp
+    bond-slaves none
+    bond-primary eth0
+    bond-mode active-backup
+    bond-miimon 100
+```
+
+
+---
+5. >Сколько IP адресов в сети с маской /29 ? Сколько /29 подсетей можно получить из сети с маской /24. Приведите несколько примеров /29 подсетей внутри сети 10.10.10.0/24.
+
+
+В сети с маской /29 - 8 адресов:
+network address - 1
+hosts - 6
+broadcast address - 1 
+
+В сети с маской /24 - 256 адресов. Такую сеть можно разделить на 32 подсети с маской /29.
+В случае с сетью 10.10.10.0/24 будут следующие подсети с маской /29:
+
+10.10.10.0/29 (10.10.10.1-10.10.10.6)
+10.10.10.8/29 (10.10.10.9-10.10.10.14)
+10.10.10.16/29 (10.10.10.17-10.10.10.22)
+10.10.10.24/29 (10.10.10.25-10.10.10.30)
+10.10.10.32/29 (10.10.10.33-10.10.10.38)
 ...
-
-% Information related to '83.219.64.0/19AS15879'
-
-route:          83.219.64.0/19
-descr:          KPN Internedservices
-origin:         AS15879
-mnt-by:         KPNIS-MNT
-mnt-lower:      KPNIS-MNT
-mnt-routes:     KPNIS-MNT
-created:        2011-02-08T09:12:13Z
-last-modified:  2020-09-07T13:45:32Z
-source:         RIPE # Filtered
-```
+10.10.10.240/29 (10.10.10.241-10.10.10.246)
+10.10.10.248/29 (10.10.10.249-10.10.10.254)
 
 
 ---
-5. >Через какие сети проходит пакет, отправленный с вашего компьютера на адрес 8.8.8.8? Через какие AS? Воспользуйтесь утилитой `traceroute`
+6. >Задача: вас попросили организовать стык между 2-мя организациями. Диапазоны 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 уже заняты. Из какой подсети допустимо взять частные IP адреса? Маску выберите из расчета максимум 40-50 хостов внутри подсети.
 
-```
-vagrant@dev-vm:~$ traceroute -An 8.8.8.8
-traceroute to 8.8.8.8 (8.8.8.8), 30 hops max, 60 byte packets
- 1  10.0.2.2 [*]  0.166 ms  0.139 ms  0.124 ms
- 2  172.19.220.1 [*]  7.996 ms  6.132 ms  8.935 ms
- 3  172.19.218.52 [*]  7.816 ms  7.799 ms  7.786 ms
- 4  83.219.72.161 [AS15879]  7.773 ms * *
- 5  82.201.93.193 [AS15879]  9.986 ms  9.840 ms  9.895 ms
- 6  91.206.80.2 [AS15879]  7.353 ms  4.520 ms  4.499 ms
- 7  213.133.37.28 [AS15879]  28.524 ms 213.133.37.30 [AS15879]  7.772 ms  7.617 ms
- 8  145.54.66.168 [*]  12.288 ms  12.066 ms 145.54.66.166 [*]  7.409 ms
- 9  * * *
-10  209.85.149.38 [AS15169]  10.438 ms * *
-11  * * *
-12  8.8.8.8 [AS15169]  7.514 ms 142.250.224.133 [AS15169]  8.572 ms 142.251.66.239 [AS15169]  7.460 ms
-```
+Частные IPv4 адреса можно задействовать из диапазона IP 100.64.0.0-100.127.255.255 (Carrier-Grade NAT). Для 40-50 хостов необходимо взять маску подсети /26 - в такой подсети может быть 62 хоста.
+
 
 ---
-6. >Повторите задание 5 в утилите mtr. На каком участке наибольшая задержка - delay?
+7. >Как проверить ARP таблицу в Linux, Windows? Как очистить ARP кеш полностью? Как из ARP таблицы удалить только один нужный IP?
+В linux:
+просмотр ARP таблицы - `arp -n`, `arp -a`, `ip neigh`:
+```
+vagrant@dev-vm:~$ arp -n
+Address                  HWtype  HWaddress           Flags Mask            Iface
+10.0.2.2                 ether   52:54:00:12:35:02   C                     eth0
+10.0.2.3                 ether   52:54:00:12:35:03   C                     eth0
 
+vagrant@dev-vm:~$ ip neigh show
+10.0.2.2 dev eth0 lladdr 52:54:00:12:35:02 DELAY
+10.0.2.3 dev eth0 lladdr 52:54:00:12:35:03 STALE
 ```
-dev-vm (10.0.2.15)                                                          2022-07-16T12:21:35+0000
-Keys:  Help   Display mode   Restart statistics   Order of fields   quit
-                                                            Packets               Pings
- Host                                                     Loss%   Snt   Last   Avg  Best  Wrst StDev
- 1. AS???    10.0.2.2                                      0.0%    62    0.4   1.3   0.2  46.1   5.9
- 2. AS???    192.168.1.1                                   0.0%    62    2.5   3.9   1.7  15.9   3.5
- 3. AS???    10.220.20.1                                   0.0%    62    3.5   6.1   1.7  40.3   7.5
- 4. AS33915  217.105.31.129                                0.0%    62    5.9  25.5   4.1 123.6  28.9
- 5. AS12315  213.34.63.13                                  0.0%    62    5.8   7.6   3.6  42.6   5.7
- 6. AS33915  213.51.7.92                                   0.0%    61    7.8   7.3   3.6  25.2   3.3
- 7. AS33915  213.51.64.186                                 1.6%    61    5.4  13.7   4.0  45.7  10.8
- 8. AS33915  213.46.182.22                                 0.0%    61    7.3   8.0   4.8  33.6   4.7
- 9. AS15169  142.251.70.127                                0.0%    61   34.1   7.6   4.2  34.1   4.6
-10. AS15169  142.251.48.175                                0.0%    61    4.5   7.3   3.7  43.7   5.9
-11. AS15169  8.8.8.8                                       0.0%    61    5.3   6.0   3.6  17.2   2.2
-```
-Узел 9 имеет наибольший показатель latency по сравнению с другими узлами.
+Для очистки ARP кеш полностью -`ip -s -s neigh flush all`
+Удалить одну запись по IP из ARP таблицы - `arp -d 192.168.0.5`
+
+В windows:
+просмотр ARP таблицы - `arp -a`.
+Для очистки ARP кеш полностью - `arp -d`
+Удалить одну запись по IP из ARP таблицы - `arp -d 192.168.0.5`
 
 ---
-7. >Какие DNS сервера отвечают за доменное имя dns.google? Какие A записи? воспользуйтесь утилитой `dig`
 
-Серверы DNS через команду `dig NS dns.google`:
-```
-;; ANSWER SECTION:
-dns.google.		21600	IN	NS	ns2.zdns.google.
-dns.google.		21600	IN	NS	ns1.zdns.google.
-dns.google.		21600	IN	NS	ns3.zdns.google.
-dns.google.		21600	IN	NS	ns4.zdns.google.
-
-```
-A записи через команду `dig A dns.google`:
-```
-;; ANSWER SECTION:
-dns.google.		900	IN	A	8.8.4.4
-dns.google.		900	IN	A	8.8.8.8
-
-```
-
----
-8. >Проверьте PTR записи для IP адресов из задания 7. Какое доменное имя привязано к IP? воспользуйтесь утилитой `dig`
-
-```
-[vainoord@vnrd-mypc:~]$ dig -x 8.8.8.8
-
-; <<>> DiG 9.10.6 <<>> -x 8.8.8.8
-;; global options: +cmd
-;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 43268
-;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
-
-;; OPT PSEUDOSECTION:
-; EDNS: version: 0, flags:; udp: 512
-;; QUESTION SECTION:
-;8.8.8.8.in-addr.arpa.		IN	PTR
-
-;; ANSWER SECTION:
-8.8.8.8.in-addr.arpa.	85205	IN	PTR	dns.google.
-
-;; Query time: 39 msec
-;; SERVER: 213.160.212.3#53(213.160.212.3)
-;; WHEN: Sat Jul 16 17:04:49 CEST 2022
-;; MSG SIZE  rcvd: 73
-
-
-[vainoord@vnrd-mypc:~]$ dig -x 8.8.4.4
-
-; <<>> DiG 9.10.6 <<>> -x 8.8.4.4
-;; global options: +cmd
-;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 13045
-;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
-
-;; OPT PSEUDOSECTION:
-; EDNS: version: 0, flags:; udp: 512
-;; QUESTION SECTION:
-;4.4.8.8.in-addr.arpa.		IN	PTR
-
-;; ANSWER SECTION:
-4.4.8.8.in-addr.arpa.	86400	IN	PTR	dns.google.
-
-;; Query time: 197 msec
-;; SERVER: 213.160.212.3#53(213.160.212.3)
-;; WHEN: Sat Jul 16 17:04:52 CEST 2022
-;; MSG SIZE  rcvd: 73
-
-```
-
----
 
