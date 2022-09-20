@@ -2,117 +2,54 @@
 
 Вы уже изучили блок «Системы управления версиями», и начиная с этого занятия все ваши работы будут приниматься ссылками на .md-файлы, размещённые в вашем публичном репозитории.
 
-Скопируйте в свой .md-файл содержимое этого файла; исходники можно посмотреть [здесь](https://raw.githubusercontent.com/netology-code/sysadm-homeworks/devsys10/04-script-02-py/README.md). Заполните недостающие части документа решением задач (заменяйте `???`, ОСТАЛЬНОЕ В ШАБЛОНЕ НЕ ТРОГАЙТЕ чтобы не сломать форматирование текста, подсветку синтаксиса и прочее, иначе можно отправиться на доработку) и отправляйте на проверку. Вместо логов можно вставить скриншоты по желани.
+Скопируйте в свой .md-файл содержимое этого файла; исходники можно посмотреть [здесь](https://raw.githubusercontent.com/netology-code/sysadm-homeworks/devsys10/04-script-03-yaml/README.md). Заполните недостающие части документа решением задач (заменяйте `???`, ОСТАЛЬНОЕ В ШАБЛОНЕ НЕ ТРОГАЙТЕ чтобы не сломать форматирование текста, подсветку синтаксиса и прочее, иначе можно отправиться на доработку) и отправляйте на проверку. Вместо логов можно вставить скриншоты по желани.
 
-# Домашнее задание к занятию "4.2. Использование Python для решения типовых DevOps задач"
+# Домашнее задание к занятию "4.3. Языки разметки JSON и YAML"
+
 
 ## Обязательная задача 1
-
-Есть скрипт:
-```python
-#!/usr/bin/env python3
-a = 1
-b = '2'
-c = a + b
+Мы выгрузили JSON, который получили через API запрос к нашему сервису:
 ```
+    { "info" : "Sample JSON output from our service\t",
+        "elements" :[
+            { "name" : "first",
+            "type" : "server",
+            "ip" : 7175
+            }
+            { "name" : "second",
+            "type" : "proxy",
+            "ip : 71.78.22.43
+            }
+        ]
+    }
+```
+Нужно найти и исправить все ошибки, которые допускает наш сервис
 
-### Вопросы:
-| Вопрос  | Ответ |
-| ------------- | ------------- |
-| Какое значение будет присвоено переменной `c`?  | Никакое, `a` и `b` имеют разный тип переменной - "TypeError: unsupported operand type(s) for +: 'int' and 'str'"  |
-| Как получить для переменной `c` значение 12?  | Поменять тип переменной `a`: c = str(a) + b  |
-| Как получить для переменной `c` значение 3?  | Поменять тип переменной `b`: c = a + int(b)  |
+#### Ответ
+
+```
+    { "info" : "Sample JSON output from our service\t",
+        "elements" :[
+            { "name" : "first",
+            "type" : "server",
+            "ip" : "7175"
+            },
+            { "name" : "second",
+            "type" : "proxy",
+            "ip" : "71.78.22.43"
+            }
+        ]
+    }
+```
+Пояснение:
+
+0. 7175 - не IP. Но это скорее ошибка сбора данных.
+1. "ip" : "7175" -  значение 7175 взято в кавычки
+2. Добавлена запятая между элементами массива []
+3. "ip" : "71.78.22.43" - добавлены кавычки
 
 ## Обязательная задача 2
-Мы устроились на работу в компанию, где раньше уже был DevOps Engineer. Он написал скрипт, позволяющий узнать, какие файлы модифицированы в репозитории, относительно локальных изменений. Этим скриптом недовольно начальство, потому что в его выводе есть не все изменённые файлы, а также непонятен полный путь к директории, где они находятся. Как можно доработать скрипт ниже, чтобы он исполнял требования вашего руководителя?
-
-```python
-#!/usr/bin/env python3
-
-import os
-
-bash_command = ["cd ~/netology/sysadm-homeworks", "git status"]
-result_os = os.popen(' && '.join(bash_command)).read()
-is_change = False
-for result in result_os.split('\n'):
-    if result.find('modified') != -1:
-        prepare_result = result.replace('\tmodified:   ', '')
-        print(prepare_result)
-        break
-```
-
-### Ваш скрипт:
-```python
-#!/usr/bin/env python3
-
-import os
-
-# поменял путь на свой для проверки
-bash_command = ["cd ~/netology/devops-netology/", "git status"]
-result_os = os.popen(' && '.join(bash_command)).read()
-# переменная is_change не используется, убираем
-for result in result_os.split('\n'):
-    if result.find('modified') != -1:
-        prepare_result = result.replace('\tmodified:   ', '')
-        print(prepare_result)
-# break прерывает работу цикла после первой отработки if, поэтому выводился только один modified файл
-```
-
-### Вывод скрипта при запуске при тестировании:
-```
-[vainoord@vnrd-mypc:~]$ python3 netology/homework/python.py
-README.md
-has_been_moved.txt
-```
-
-## Обязательная задача 3
-1. Доработать скрипт выше так, чтобы он мог проверять не только локальный репозиторий в текущей директории, а также умел воспринимать путь к репозиторию, который мы передаём как входной параметр. Мы точно знаем, что начальство коварное и будет проверять работу этого скрипта в директориях, которые не являются локальными репозиториями.
-
-### Ваш скрипт:
-```python
-#!/usr/bin/env python3
-import os
-#import sys library
-import sys
-
-# path to repository
-rep_path = sys.argv[1]
-# checking if the script is being used correctly
-if len(sys.argv) != 2:
-    print('Usage: python3 script_name /path/to/git/repository')
-    exit(0)
-# is the directory exist?
-if not (os.path.exists(sys.argv[1])):
-    print('Directory ' + rep_path + ' does not exist')
-    exit(0)
-# redirect stderr to stdout for catching git errors
-bash_command = ["cd " + rep_path, "git status 2>&1"]
-result_os = os.popen(' && '.join(bash_command)).read()
-for result in result_os.split('\n'):
-    # if directory is not a git repository
-    if result.find('fatal') != -1:
-        print('Directory ' + rep_path + ' is not a git repository')
-    # if we have modified files
-    if result.find('modified') != -1:
-        prepare_result = result.replace('\tmodified:   ', '')
-        print(prepare_result)
-```
-
-### Вывод скрипта при запуске при тестировании:
-```
-[vainoord@vnrd-mypc:homework]$ python3 python.py
-Usage: python3 script_name /path/to/git/repository
-
-[vainoord@vnrd-mypc:homework]$ python3 python.py /tmp/
-Directory /tmp/ is not a git repository
-
-[vainoord@vnrd-mypc:homework]$ python3 python.py /Users/vainoord/netology/devops-netology/
-README.md
-has_been_moved.txt
-```
-
-## Обязательная задача 4
-1. Наша команда разрабатывает несколько веб-сервисов, доступных по http. Мы точно знаем, что на их стенде нет никакой балансировки, кластеризации, за DNS прячется конкретный IP сервера, где установлен сервис. Проблема в том, что отдел, занимающийся нашей инфраструктурой очень часто меняет нам сервера, поэтому IP меняются примерно раз в неделю, при этом сервисы сохраняют за собой DNS имена. Это бы совсем никого не беспокоило, если бы несколько раз сервера не уезжали в такой сегмент сети нашей компании, который недоступен для разработчиков. Мы хотим написать скрипт, который опрашивает веб-сервисы, получает их IP, выводит информацию в стандартный вывод в виде: <URL сервиса> - <его IP>. Также, должна быть реализована возможность проверки текущего IP сервиса c его IP из предыдущей проверки. Если проверка будет провалена - оповестить об этом в стандартный вывод сообщением: [ERROR] <URL сервиса> IP mismatch: <старый IP> <Новый IP>. Будем считать, что наша разработка реализовала сервисы: `drive.google.com`, `mail.google.com`, `google.com`.
+В прошлый рабочий день мы создавали скрипт, позволяющий опрашивать веб-сервисы и получать их IP. К уже реализованному функционалу нам нужно добавить возможность записи JSON и YAML файлов, описывающих наши сервисы. Формат записи JSON по одному сервису: `{ "имя сервиса" : "его IP"}`. Формат записи YAML по одному сервису: `- имя сервиса: его IP`. Если в момент исполнения скрипта меняется IP у сервиса - он должен так же поменяться в yml и json файле.
 
 ### Ваш скрипт:
 ```python
@@ -121,73 +58,129 @@ has_been_moved.txt
 import time
 import socket
 import datetime
+import yaml
+import json
+import os
 
-# dictionary of servers being monitored with initials IP addresses
-servers = {
+
+def write_data(FPath, DataHosts, lst):
+    """Write hostname and IP address into config file"""
+    # write data into JSON file
+    with open(str(FPath) + "host_data" + ".json", 'w') as DataFile:
+        JSONData = json.dumps(DataHosts, indent=4)
+        DataFile.write(JSONData)
+        DataFile.write('\n')
+    # write data into YAML file
+    with open(FPath + "host_data" + ".yaml", 'w') as DataFile:
+        DataFile.write('---\n')
+        YAMLData = yaml.dump(lst)
+        DataFile.write(YAMLData)
+        DataFile.write('...')
+
+# dictionary of servers being monitored with initials IP addresses for JSON data
+dict_servers = {
     'drive.google.com':'0.0.0.0',
     'mail.google.com':'0.0.0.0',
     'google.com':'0.0.0.0'
     }
+# list of same servers for YAML data
+list_servers = []
+for el in dict_servers:
+    list_servers.append({el: dict_servers[el]})
+
+# get current directory path
+folder_path = os.getcwd() + '/'
+# Create once .json and .yaml files with default ip for each hosts
+write_data(folder_path, dict_servers, list_servers)
 # set script running constantly
 while True:
     # print current date
+    flag = False
     print(str(datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S"))+':')
-    for host_name in servers:
+    for host_name in dict_servers:
         # print server's name and old IP
-        print(f'{host_name} - {servers[host_name]}')
+        print(f'{host_name} - {dict_servers[host_name]}')
         time.sleep(1)
         # getting a ip from dns server by dns hostname
         try:
-            hostip = socket.gethostbyname(host_name)
+            host_ip = socket.gethostbyname(host_name)
         except:
             print(f'Host {host_name} not found')
         # print message if host IP has been changed
-        if (hostip != servers[host_name]):
-            print(f'[ERROR] host_name IP mismatch: {servers[host_name]}, {hostip}')
-            servers[host_name] = hostip
-            time.sleep(3)
+        if (host_ip != dict_servers[host_name]):
+            print(f'[Warning] host_name IP mismatch: {dict_servers[host_name]}, {host_ip}')
+            dict_servers[host_name] = host_ip
+            time.sleep(2)
+            # update source dictionary
+            dict_servers.update({host_name:host_ip})
+        #update source list
+        for element in list_servers:
+            for i in element:
+                if (i == host_name):
+                    element[host_name] = host_ip
+                    flag = True
+                    break
+        # add data from dictionary and list into .json and .yaml files
+        write_data(folder_path, dict_servers, list_servers)
     print('')
     time.sleep(5)
 ```
 
 ### Вывод скрипта при запуске при тестировании:
 ```
-[vainoord@vnrd-mypc:homework]$ python3 receive_ip.py
-2022/08/18 23:03:07:
+[vainoord@vnrd-mypc:homework]$ python3 ip_receive.py
+2022/09/19 21:37:07:
 drive.google.com - 0.0.0.0
-[ERROR] host_name IP mismatch: 0.0.0.0, 142.251.36.46
+[Warning] host_name IP mismatch: 0.0.0.0, 142.251.36.46
 mail.google.com - 0.0.0.0
-[ERROR] host_name IP mismatch: 0.0.0.0, 142.250.179.133
+[Warning] host_name IP mismatch: 0.0.0.0, 142.251.36.37
 google.com - 0.0.0.0
-[ERROR] host_name IP mismatch: 0.0.0.0, 142.251.39.110
+[Warning] host_name IP mismatch: 0.0.0.0, 142.250.179.174
 
-2022/08/18 23:03:24:
+2022/09/19 21:37:21:
 drive.google.com - 142.251.36.46
-[ERROR] host_name IP mismatch: 142.251.36.46, 216.58.214.14
-mail.google.com - 142.250.179.133
-google.com - 142.251.39.110
+mail.google.com - 142.251.36.37
+google.com - 142.250.179.174
 
-2022/08/18 23:03:35:
-drive.google.com - 216.58.214.14
-mail.google.com - 142.250.179.133
-google.com - 142.251.39.110
+2022/09/19 21:37:29:
+drive.google.com - 142.251.36.46
+mail.google.com - 142.251.36.37
+google.com - 142.250.179.174
 
-2022/08/18 23:03:43:
-drive.google.com - 216.58.214.14
-mail.google.com - 142.250.179.133
-google.com - 142.251.39.110
+```
+
+### json-файл(ы), который(е) записал ваш скрипт:
+```json
+{
+    "drive.google.com": "142.250.179.206",
+    "mail.google.com": "142.251.36.5",
+    "google.com": "142.251.39.110"
+}
+```
+
+### yml-файл(ы), который(е) записал ваш скрипт:
+```yaml
+---
+- drive.google.com: 142.251.36.46
+- mail.google.com: 142.251.36.37
+- google.com: 142.250.179.174
+...
 ```
 
 ## Дополнительное задание (со звездочкой*) - необязательно к выполнению
 
-Так получилось, что мы очень часто вносим правки в конфигурацию своей системы прямо на сервере. Но так как вся наша команда разработки держит файлы конфигурации в github и пользуется gitflow, то нам приходится каждый раз переносить архив с нашими изменениями с сервера на наш локальный компьютер, формировать новую ветку, коммитить в неё изменения, создавать pull request (PR) и только после выполнения Merge мы наконец можем официально подтвердить, что новая конфигурация применена. Мы хотим максимально автоматизировать всю цепочку действий. Для этого нам нужно написать скрипт, который будет в директории с локальным репозиторием обращаться по API к github, создавать PR для вливания текущей выбранной ветки в master с сообщением, которое мы вписываем в первый параметр при обращении к py-файлу (сообщение не может быть пустым). При желании, можно добавить к указанному функционалу создание новой ветки, commit и push в неё изменений конфигурации. С директорией локального репозитория можно делать всё, что угодно. Также, принимаем во внимание, что Merge Conflict у нас отсутствуют и их точно не будет при push, как в свою ветку, так и при слиянии в master. Важно получить конечный результат с созданным PR, в котором применяются наши изменения.
+Так как команды в нашей компании никак не могут прийти к единому мнению о том, какой формат разметки данных использовать: JSON или YAML, нам нужно реализовать парсер из одного формата в другой. Он должен уметь:
+   * Принимать на вход имя файла
+   * Проверять формат исходного файла. Если файл не json или yml - скрипт должен остановить свою работу
+   * Распознавать какой формат данных в файле. Считается, что файлы *.json и *.yml могут быть перепутаны
+   * Перекодировать данные из исходного формата во второй доступный (из JSON в YAML, из YAML в JSON)
+   * При обнаружении ошибки в исходном файле - указать в стандартном выводе строку с ошибкой синтаксиса и её номер
+   * Полученный файл должен иметь имя исходного файла, разница в наименовании обеспечивается разницей расширения файлов
 
 ### Ваш скрипт:
 ```python
-???
+
 ```
 
-### Вывод скрипта при запуске при тестировании:
-```
+### Пример работы скрипта:
 ???
-```
