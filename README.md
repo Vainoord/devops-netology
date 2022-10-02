@@ -1,4 +1,4 @@
-~# Домашнее задание к занятию "5.5. Оркестрация кластером Docker контейнеров на примере Docker Swarm"
+# Домашнее задание к занятию "5.5. Оркестрация кластером Docker контейнеров на примере Docker Swarm"
 
 ## Задача 1
 
@@ -64,7 +64,7 @@ Swarm updated.
 To unlock a swarm manager after it restarts, run the `docker swarm unlock`
 command and provide the following key:
 
-    SWMKEY-1-tOS9q+/PMt9FHoSxUek+bEhsDNmsy0XtmzeSJIuLceM
+    ****************************************************
 
 Please remember to store this key in a password manager, since without it you
 will not be able to restart the manager.
